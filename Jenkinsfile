@@ -22,34 +22,33 @@ pipeline {
 
             steps {
 
-                checkout scm
-
                 echo 'Building Docker image...'
 
-                bat """
+                bat '''
                     docker build ^
                     -t %IMAGE_NAME%:%BUILD_NUMBER% .
-                """
+                '''
 
-                bat """
+                bat '''
                     docker image inspect ^
                     %IMAGE_NAME%:%BUILD_NUMBER%
-                """
+                '''
             }
         }
 
 
         stage('Test') {
 
-            steps {
+                steps {
 
-                echo 'Running automated tests...'
+                    echo 'Running automated tests...'
 
-                bat """
-                    docker run --rm ^
-                    %IMAGE_NAME%:%BUILD_NUMBER% ^
-                    node --test tests/pipeline.test.js
-                """
+                    bat '''
+                        docker run --rm ^
+                        --entrypoint node ^
+                        %IMAGE_NAME%:%BUILD_NUMBER% ^
+                        --test tests/pipeline.test.js
+                    '''
             }
         }
 
