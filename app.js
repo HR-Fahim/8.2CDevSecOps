@@ -26,6 +26,22 @@ var cons = require('consolidate');
 const hbs = require('hbs')
 
 var app = express();
+
+app.get('/devops-test.html', function (req, res) {
+    res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>DevOps Test</title>
+        </head>
+        <body>
+            <h1>DevOps Deployment Successful</h1>
+            <p>SIT753 7.3HD Jenkins Docker Test</p>
+        </body>
+        </html>
+    `);
+});
+
 var routes = require('./routes');
 var routesUsers = require('./routes/users.js')
 
