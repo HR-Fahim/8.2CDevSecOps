@@ -1,8 +1,7 @@
-version: "2"
 services:
+
   goof:
-    image: ${APP_IMAGE:-goof:latest}   # Updated to latest 
-    container_name: goof
+    image: ${APP_IMAGE:-goof:latest}
     environment:
       - DOCKER=1
     ports:
@@ -14,13 +13,11 @@ services:
       - goof-mongo
 
   goof-mongo:
-    container_name: goof-mongo
     image: mongo:3
     ports:
       - "27017:27017"
 
   good-mysql:
-    container_name: goof-mysql
     image: mysql:5
     environment:
       MYSQL_ROOT_PASSWORD: root
