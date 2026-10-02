@@ -1,5 +1,3 @@
-# 8.2CDevSecOps
-
 ### SIT753: Professional Practice in IT and Task 7.3HD: DevSecOps Pipeline
 
 This project implements a **Jenkins-based DevSecOps pipeline** for the Node.js Goof application.
