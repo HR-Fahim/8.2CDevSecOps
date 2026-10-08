@@ -1,30 +1,20 @@
 services:
-
   goof:
-
     image: ${APP_IMAGE:-goof:latest}
-
     environment:
       DOCKER: "1"
-
     ports:
       - "${APP_PORT:-3001}:3001"
       - "${DEBUG_PORT:-9229}:9229"
-
-    links:
-      - goof-mongo
-
     depends_on:
       - goof-mongo
+      - good-mysql
 
   goof-mongo:
-
     image: mongo:3
 
   good-mysql:
-
     image: mysql:5
-
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: acme
