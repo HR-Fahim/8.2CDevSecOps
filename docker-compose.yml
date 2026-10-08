@@ -5,11 +5,11 @@ services:
     image: ${APP_IMAGE:-goof:latest}
 
     environment:
-      - DOCKER=1
+      DOCKER: "1"
 
     ports:
-      - "3001:3001"
-      - "9229:9229"
+      - "${APP_PORT:-3001}:3001"
+      - "${DEBUG_PORT:-9229}:9229"
 
     links:
       - goof-mongo
@@ -17,11 +17,9 @@ services:
     depends_on:
       - goof-mongo
 
-
   goof-mongo:
 
     image: mongo:3
-
 
   good-mysql:
 
