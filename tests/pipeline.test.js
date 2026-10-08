@@ -5,31 +5,34 @@ const utils = require('../utils');
 
 test('ran_no works with a different valid range', () => {
     for (let i = 0; i < 20; i++) {
-        const value = ran_no(10, 50);
+        const value = utils.ran_no(10, 50);
 
         assert.ok(value >= 10);
         assert.ok(value <= 50);
+        assert.equal(Number.isInteger(value), true);
     }
 });
 
 test('ran_no returns the boundary value for a single-value range', () => {
-    assert.equal(ran_no(5, 5), 5);
+    assert.equal(utils.ran_no(5, 5), 5);
 });
 
 test('uid returns the requested length for 4 characters', () => {
-    const value = uid(4);
+    const value = utils.uid(4);
 
+    assert.equal(typeof value, 'string');
     assert.equal(value.length, 4);
 });
 
 test('uid returns the requested length for 16 characters', () => {
-    const value = uid(16);
+    const value = utils.uid(16);
 
+    assert.equal(typeof value, 'string');
     assert.equal(value.length, 16);
 });
 
 test('uid returns strings', () => {
-    const value = uid(10);
+    const value = utils.uid(10);
 
     assert.equal(typeof value, 'string');
     assert.equal(value.length, 10);
@@ -46,6 +49,7 @@ test('ran_no returns a value inside the requested range', () => {
 test('uid returns the requested length', () => {
     const value = utils.uid(10);
 
+    assert.equal(typeof value, 'string');
     assert.equal(value.length, 10);
 });
 
