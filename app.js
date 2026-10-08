@@ -55,11 +55,24 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.use(logger('dev'));
 app.use(methodOverride());
+
+if (!process.env.SESSION_SECRET) {
+    throw new Error('SESSION_SECRET is not configured');
+}
+
+if (!process.env.APP_TOKEN) {
+    throw new Error('APP_TOKEN is not configured');
+}
+
 app.use(session({
-  secret: 'keyboard cat',
-  name: 'connect.sid',
-  cookie: { path: '/' }
-}))
+    secret: process.env.SESSION_SECRET,
+    name: 'connect.sid',
+    cookie: {
+        secure: true,
+        httpOnly: true
+    }
+}));
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(fileUpload());
@@ -96,9 +109,9 @@ if (app.get('env') == 'development') {
   app.use(errorHandler());
 }
 
-var token = 'SECRET_TOKEN_f8ed84e8f41e4146403dd4a6bbcea5e418d23a9';
-console.log('token: ' + token);
+const token = process.env.APP_TOKEN;
 
+// Start Server
 http.createServer(app).listen(app.get('port'), function () {
   console.log('Express server listening on port ' + app.get('port'));
 });
