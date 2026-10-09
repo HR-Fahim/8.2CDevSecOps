@@ -1,0 +1,8 @@
+node_modules
+.git
+coverage
+snyk-report.json
+npm-debug.log
+.DS_Store
+.env
+.env.*

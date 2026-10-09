@@ -3,18 +3,22 @@ services:
     image: ${APP_IMAGE:-goof:latest}
     environment:
       DOCKER: "1"
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in Jenkins credentials}
     ports:
       - "${APP_PORT:-3001}:3001"
       - "${DEBUG_PORT:-9229}:9229"
     depends_on:
       - goof-mongo
       - good-mysql
+    restart: unless-stopped
 
   goof-mongo:
     image: mongo:3
+    restart: unless-stopped
 
   good-mysql:
     image: mysql:5
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: acme
+    restart: unless-stopped

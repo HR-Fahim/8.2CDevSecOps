@@ -7,7 +7,6 @@ require('./mongoose-db');
 require('./typeorm-db')
 
 var st = require('st');
-var crypto = require('crypto');
 var express = require('express');
 var http = require('http');
 var path = require('path');
@@ -60,10 +59,6 @@ if (!process.env.SESSION_SECRET) {
     throw new Error('SESSION_SECRET is not configured');
 }
 
-if (!process.env.APP_TOKEN) {
-    throw new Error('APP_TOKEN is not configured');
-}
-
 app.use(session({
     secret: process.env.SESSION_SECRET,
     name: 'connect.sid',
@@ -108,8 +103,6 @@ app.locals.marked = marked;
 if (app.get('env') == 'development') {
   app.use(errorHandler());
 }
-
-const token = process.env.APP_TOKEN;
 
 // Start Server
 http.createServer(app).listen(app.get('port'), function () {

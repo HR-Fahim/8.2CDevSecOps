@@ -1,30 +1,23 @@
-const utils = require('../utils');
 const mongoose = require('mongoose');
 const Todo = mongoose.model('Todo');
 const User = mongoose.model('User');
 const hms = require('humanize-ms');
 const ms = require('ms');
-const streamBuffers = require('stream-buffers');
-const readline = require('readline');
 const moment = require('moment');
-const exec = require('child_process').exec;
 const validator = require('validator');
 const fileType = require('file-type');
 const AdmZip = require('adm-zip');
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-const crypto = require('crypto');
-const _ = require('lodash');
 
-function onLoginSuccessHook(redirectPage, session, username, res) {
-  session.loggedIn = 1;
-  console.log(`User logged in: ${username}`);
-
-  if (redirectPage) {
-    return res.redirect(redirectPage);
+function safeRedirectPath(value) {
+  if (
+    typeof value === 'string' &&
+    value.startsWith('/') &&
+    !value.startsWith('//') &&
+    !value.includes('\\')
+  ) {
+    return value;
   }
-  return res.redirect('/admin');
+  return '/admin';
 }
 
 exports.index = function (req, res, next) {
@@ -53,23 +46,18 @@ exports.loginHandler = function (req, res, next) {
   }
 
   User.find({ username, password }, (err, users) => {
-    if (users.length > 0) {
-      const redirectPage = req.body.redirectPage;
-      const session = req.session;
-      return adminLoginSuccess(redirectPage, session, username, res);
+    if (err) return next(err);
+    if (Array.isArray(users) && users.length > 0) {
+      return adminLoginSuccess(req.body.redirectPage, req.session, username, res);
     }
-    return res.status(401).send();
+    return res.status(401).send('Invalid credentials');
   });
 };
 
 function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1;
   console.log(`User logged in: ${username}`);
-
-  if (redirectPage) {
-    return res.redirect(redirectPage);
-  }
-  return res.redirect('/admin');
+  return res.redirect(safeRedirectPath(redirectPage));
 }
 
 exports.login = function (req, res, next) {
@@ -157,15 +145,13 @@ function parse(todo) {
 }
 
 exports.create = function (req, res, next) {
-  let item = req.body.content;
-  const imgRegex = /\!\[.*\]\((.*)\)/;
-
-  if (typeof item === 'string' && item.match(imgRegex)) {
-    const url = item.match(imgRegex)[1];
-    exec(`identify ${url}`, () => {});
-  } else {
-    item = parse(item);
+  const submittedContent = req.body.content;
+  if (typeof submittedContent !== 'string' || submittedContent.length > 10000) {
+    return res.status(400).send('Invalid todo content');
   }
+
+  // Store submitted markdown as text; never pass user-controlled URLs to a shell.
+  const item = parse(submittedContent);
 
   new Todo({
     content: item,
@@ -221,66 +207,80 @@ function isBlank(str) {
 }
 
 exports.import = function (req, res, next) {
-  if (!req.files) {
-    res.send('No files were uploaded.');
-    return;
+  if (!req.files || !req.files.importFile || !req.files.importFile.data) {
+    return res.status(400).send('No import file was uploaded.');
   }
 
   const importFile = req.files.importFile;
-  let data;
-  let importedFileType = fileType(importFile.data);
-  const zipFileExt = { ext: 'zip', mime: 'application/zip' };
+  if (importFile.data.length > 5 * 1024 * 1024) {
+    return res.status(413).send('Import file is too large. Maximum size is 5 MB.');
+  }
 
+  let importedFileType = fileType(importFile.data);
   if (importedFileType === null) {
     importedFileType = { ext: 'txt', mime: 'text/plain' };
   }
 
-  if (importedFileType.mime === zipFileExt.mime) {
-    const zip = AdmZip(importFile.data);
-
-    const extracted_path = fs.mkdtempSync(
-      path.join(os.tmpdir(), 'goof-')
-    );
-
-    fs.chmodSync(extracted_path, 0o700);
-    zip.extractAllTo(extracted_path, true);
-
-    data = 'No backup.txt file found';
-
-    fs.readFile('backup.txt', 'ascii', (err, fileData) => {
-      if (!err) {
-        data = fileData;
+  let data;
+  if (importedFileType.mime === 'application/zip') {
+    try {
+      const zip = new AdmZip(importFile.data);
+      const backupEntry = zip.getEntry('backup.txt');
+      if (!backupEntry || backupEntry.isDirectory) {
+        return res.status(400).send('ZIP file must contain backup.txt at its root.');
       }
-    });
+      data = backupEntry.getData().toString('ascii');
+    } catch (err) {
+      return res.status(400).send('Invalid ZIP import file.');
+    }
   } else {
     data = importFile.data.toString('ascii');
   }
 
-  const lines = data.split('\n');
+  if (typeof data !== 'string') {
+    return res.status(400).send('Invalid import data.');
+  }
+
+  const lines = data.split(/\r?\n/).slice(0, 10000);
+  let pending = 0;
+  let finished = false;
+  let failed = false;
+
+  function finishIfReady() {
+    if (finished || pending > 0) return;
+    finished = true;
+    if (failed) return next(new Error('One or more imported TODOs could not be saved.'));
+    return res.redirect('/');
+  }
+
   lines.forEach((line) => {
+    if (isBlank(line)) return;
     const parts = line.split(',');
     const what = parts[0];
     const when = parts[1];
     const locale = parts[2];
     const format = parts[3];
+    if (isBlank(what) || what.length > 10000) return;
 
-    if (!isBlank(what)) {
-      let item = what;
-
-      if (!isBlank(when) && !isBlank(locale) && !isBlank(format)) {
+    let item = what;
+    if (!isBlank(when) && !isBlank(locale) && !isBlank(format)) {
+      // Accept only known locale/format strings; never use input as a filesystem path.
+      if (/^[a-zA-Z_-]{2,10}$/.test(locale) && /^[A-Za-z0-9 ,:./_-]{1,80}$/.test(format)) {
         moment.locale(locale);
-        const d = moment(when);
-        item += ` [${d.format(format)}]`;
+        const date = moment(when);
+        if (date.isValid()) item += ` [${date.format(format)}]`;
       }
-
-      new Todo({
-        content: item,
-        updated_at: Date.now()
-      }).save(() => {});
     }
+
+    pending += 1;
+    new Todo({ content: item, updated_at: Date.now() }).save((err) => {
+      if (err) failed = true;
+      pending -= 1;
+      finishIfReady();
+    });
   });
 
-  res.redirect('/');
+  finishIfReady();
 };
 
 exports.about_new = function (req, res, next) {
@@ -291,10 +291,20 @@ exports.about_new = function (req, res, next) {
   });
 };
 
-const users = [
-  { name: 'user', password: 'pwd' },
-  { name: 'admin', password: crypto.randomInt(0, Number.MAX_SAFE_INTEGER).toString(32), canDelete: true }
-];
+const users = [];
+if (process.env.CHAT_USER_PASSWORD) {
+  users.push({
+    name: process.env.CHAT_USER_NAME || 'user',
+    password: process.env.CHAT_USER_PASSWORD
+  });
+}
+if (process.env.CHAT_ADMIN_PASSWORD) {
+  users.push({
+    name: process.env.CHAT_ADMIN_NAME || 'admin',
+    password: process.env.CHAT_ADMIN_PASSWORD,
+    canDelete: true
+  });
+}
 
 let messages = [];
 let lastId = 1;
@@ -317,12 +327,20 @@ exports.chat = {
       return;
     }
 
-    const message = { icon: '👋' };
+    const incoming = req.body.message;
+    if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) {
+      res.status(400).send({ ok: false, error: 'Invalid message' });
+      return;
+    }
 
-    _.merge(message, req.body.message, {
+    const message = {
+      icon: typeof incoming.icon === 'string' ? incoming.icon.slice(0, 16) : '👋',
       id: lastId++,
       timestamp: Date.now(),
       userName: user.name
+    };
+    ['text', 'content', 'message'].forEach((key) => {
+      if (typeof incoming[key] === 'string') message[key] = incoming[key].slice(0, 2000);
     });
 
     messages.push(message);
