@@ -301,7 +301,7 @@ pipeline {
                         echo "Monitoring error: ${err.getMessage()}"
                     }
                     echo "MONITORING_OK=${env.MONITORING_OK}"
-                    echo 'Uptime Kuma dashboard: http://localhost:3003. Configure an HTTP(s) monitor for the deployed app and configure notification delivery in the Uptime Kuma UI to enable alerts.'
+                    echo 'Uptime Kuma dashboard: http://localhost:3004. Configure an HTTP(s) monitor for the deployed app and configure notification delivery in the Uptime Kuma UI to enable alerts.'
                 }
             }
         }
