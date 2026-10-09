@@ -12,6 +12,14 @@ pipeline {
     }
 
     stages {
+        stage('Docker Diagnostics') {
+            steps {
+                bat 'whoami'
+                bat 'docker version'
+                bat 'docker info'
+                bat 'docker image inspect node:18.13.0'
+            }
+        }
         stage('Build') {
             steps {
                 echo 'Building Docker image with the Jenkins build number...'
