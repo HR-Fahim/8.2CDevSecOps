@@ -33,10 +33,12 @@ exports.index = function (req, res, next) {
     });
 };
 
-exports.loginHandler = function (req, res, next) {
+
+exports.loginHandler = async function (req, res, next) {
   const username = req.body.username;
   const password = req.body.password;
 
+  // Accept only primitive strings from the request.
   if (typeof username !== 'string' || typeof password !== 'string') {
     return res.status(400).send('Invalid credentials');
   }
@@ -45,13 +47,25 @@ exports.loginHandler = function (req, res, next) {
     return res.status(401).send();
   }
 
-  User.find({ username, password }, (err, users) => {
-    if (err) return next(err);
-    if (Array.isArray(users) && users.length > 0) {
-      return adminLoginSuccess(req.body.redirectPage, req.session, username, res);
+  try {
+    const user = await User.findOne({
+      username: { $eq: username },
+      password: { $eq: password }
+    });
+
+    if (user) {
+      return adminLoginSuccess(
+        req.body.redirectPage,
+        req.session,
+        username,
+        res
+      );
     }
+
     return res.status(401).send('Invalid credentials');
-  });
+  } catch (err) {
+    return next(err);
+  }
 };
 
 function adminLoginSuccess(redirectPage, session, username, res) {
