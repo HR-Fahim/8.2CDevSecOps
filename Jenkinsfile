@@ -31,19 +31,40 @@ pipeline {
             }
         }
 
+        
         stage('Build') {
             steps {
                 script {
                     echo "Building ${env.IMAGE_NAME}:${env.BUILD_NUMBER}..."
-                    int buildResult = bat(returnStatus: true, script: 'docker build -t %IMAGE_NAME%:%BUILD_NUMBER% .')
-                    if (buildResult == 0) {
-                        int inspectResult = bat(returnStatus: true, script: 'docker image inspect %IMAGE_NAME%:%BUILD_NUMBER%')
-                        env.BUILD_OK = inspectResult == 0 ? 'true' : 'false'
-                    }
+
+                    int buildResult = powershell(
+                        returnStatus: true,
+                        script: '''
+                            $image = "$env:IMAGE_NAME`:$env:BUILD_NUMBER"
+
+                            docker build -t $image .
+                            if ($LASTEXITCODE -ne 0) {
+                                Write-Host "BUILD RESULT: FAILED."
+                                exit 1
+                            }
+
+                            docker image inspect $image *> $null
+                            if ($LASTEXITCODE -ne 0) {
+                                Write-Host "BUILD RESULT: FAILED - image inspection failed."
+                                exit 1
+                            }
+
+                            Write-Host "BUILD RESULT: PASSED - image exists."
+                            exit 0
+                        '''
+                    )
+
+                    env.BUILD_OK = (buildResult == 0) ? 'true' : 'false'
                     echo "BUILD_OK=${env.BUILD_OK}"
                 }
             }
-        }
+}
+
 
         stage('Test') {
             steps {
