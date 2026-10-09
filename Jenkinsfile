@@ -265,7 +265,7 @@ pipeline {
             steps {
                 script {
                     try {
-                        int kumaResult = bat(returnStatus: true, script: 'docker compose -p goof-monitoring -f monitoring-compose.yml up -d')
+                        int kumaResult = bat(returnStatus: true, script: 'docker compose -p 82cdevsecops -f monitoring-compose.yml up -d')
                         if (kumaResult != 0) {
                             env.MONITORING_OK = 'false'
                             echo 'Uptime Kuma failed to start.'
