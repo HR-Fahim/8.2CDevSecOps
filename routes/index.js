@@ -8,16 +8,32 @@ const validator = require('validator');
 const fileType = require('file-type');
 const AdmZip = require('adm-zip');
 
+
 function safeRedirectPath(value) {
+  const fallback = '/admin';
+  const localOrigin = 'http://localhost';
+
   if (
-    typeof value === 'string' &&
-    value.startsWith('/') &&
-    !value.startsWith('//') &&
-    !value.includes('\\')
+    typeof value !== 'string' ||
+    !value.startsWith('/') ||
+    value.startsWith('//') ||
+    value.includes('\\')
   ) {
-    return value;
+    return fallback;
   }
-  return '/admin';
+
+  try {
+    const target = new URL(value, localOrigin);
+
+    // Accept only paths that resolve to the expected local origin.
+    if (target.origin !== localOrigin) {
+      return fallback;
+    }
+
+    return `${target.pathname}${target.search}${target.hash}`;
+  } catch {
+    return fallback;
+  }
 }
 
 exports.index = function (req, res, next) {
