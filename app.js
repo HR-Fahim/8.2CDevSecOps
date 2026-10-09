@@ -44,6 +44,9 @@ app.set('view engine', 'ejs');
 app.use(logger('dev'));
 app.use(methodOverride());
 
+// Serve public assets before creating application sessions.
+app.use('/public', express.static(path.join(__dirname, 'public')));
+
 if (!process.env.SESSION_SECRET) {
     throw new Error('SESSION_SECRET is not configured');
 }
@@ -80,9 +83,6 @@ app.get('/chat', routes.chat.get);
 app.put('/chat', routes.chat.add);
 app.delete('/chat', routes.chat.delete);
 app.use('/users', routesUsers)
-
-// Static
-app.use('/public', express.static(path.join(__dirname, 'public')));
 
 // development only
 if (app.get('env') == 'development') {
