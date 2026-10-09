@@ -41,6 +41,15 @@ them. SonarCloud runs only after passing tests and generation of the current
 build's LCOV report. Commit and push the changes, then rerun Jenkins to update
 SonarCloud; a local coverage result does not confirm the hosted quality gate.
 
+## Deployment Runtime
+
+Static files use Express's built-in middleware. MongoDB 7 is used with Mongoose 9,
+and Compose waits for the database health check before starting the application.
+The unused MySQL service has been removed.
+
+MongoDB 7 stores data in the project-specific `mongo7-data` volume. Existing
+MongoDB 3 data is not migrated or deleted by this change.
+
 ## Resubmission Evidence Checklist
 
 Show these in the updated video/report:

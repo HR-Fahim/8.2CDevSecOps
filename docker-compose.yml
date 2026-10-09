@@ -7,17 +7,21 @@ services:
     ports:
       - "${APP_PORT:-3001}:3001"
     depends_on:
-      - goof-mongo
-      - good-mysql
+      goof-mongo:
+        condition: service_healthy
     restart: unless-stopped
 
   goof-mongo:
-    image: mongo:3
+    image: mongo:7
+    volumes:
+      - mongo7-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "quit(db.adminCommand({ ping: 1 }).ok === 1 ? 0 : 1)"]
+      interval: 10s
+      timeout: 30s
+      retries: 6
+      start_period: 30s
     restart: unless-stopped
 
-  good-mysql:
-    image: mysql:5
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: acme
-    restart: unless-stopped
+volumes:
+  mongo7-data:

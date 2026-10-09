@@ -5,7 +5,6 @@
 // mongoose setup
 require('./mongoose-db');
 
-var st = require('st');
 var express = require('express');
 var http = require('http');
 var path = require('path');
@@ -83,7 +82,7 @@ app.delete('/chat', routes.chat.delete);
 app.use('/users', routesUsers)
 
 // Static
-app.use(st({ path: './public', url: '/public' }));
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
 // development only
 if (app.get('env') == 'development') {

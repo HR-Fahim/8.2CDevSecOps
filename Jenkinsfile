@@ -437,7 +437,7 @@ pipeline {
 
                                         // Keep staging running on 3001; production uses a separate project and port.
 
-                                        deployResult = bat(returnStatus: true, script: 'docker compose -p goof-production up -d')
+                                        deployResult = bat(returnStatus: true, script: 'docker compose -p goof-production up -d --remove-orphans')
 
                                     }
 
