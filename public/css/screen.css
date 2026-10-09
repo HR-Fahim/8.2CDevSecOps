@@ -16,7 +16,10 @@ time, mark, audio, video {
   padding: 0;
   border: 0;
   font-size: 100%;
-  font: inherit;
+  font-family: inherit;
+  font-style: inherit;
+  font-weight: inherit;
+  line-height: inherit;
   vertical-align: baseline;
 }
 
@@ -190,7 +193,7 @@ body {
 #dreamerslab {
   display: inline;
   float: left;
-  font-family: Georgia;
+  font-family: Georgia, serif;
   background: url("/public/images/dreamerslab.png") no-repeat top left;
   padding: 0 0 3px 16px;
   color: #333333;
@@ -207,7 +210,7 @@ body {
   display: inline;
   float: left;
   color: #333333;
-  font-family: Georgia;
+  font-family: Georgia, serif;
   padding: 0 4px;
 }
 

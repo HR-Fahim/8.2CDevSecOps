@@ -4,14 +4,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: snyk/actions/setup@master
+      - uses: actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26
+      - uses: snyk/actions/setup@11b673cfb4b0dc0d860a1323caa199d54950dcce
       - name: Snyk Test
-        run: snyk code test --org=${{ secrets.SNYK_ORG }} --sarif > snyk-sarif2.json
-        continue-on-error: true
+        run: snyk code test --org="$SNYK_ORG" --sarif > snyk-sarif2.json
         env:
            SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+           SNYK_ORG: ${{ secrets.SNYK_ORG }}
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@8dca8a82e2fa1a2c8908956f711300f9c4a4f4f6
         with:
           sarif_file: snyk-sarif2.json
