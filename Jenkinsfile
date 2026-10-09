@@ -20,25 +20,23 @@ pipeline {
 
         IMAGE_NAME = 'goof'
 
-        BUILD_OK = 'false'
-
-        TESTS_OK = 'false'
-
-        SONAR_OK = 'false'
-
-        SNYK_OK = 'false'
-
-        STAGING_OK = 'false'
-
-        RELEASE_OK = 'false'
-
-        MONITORING_OK = 'false'
-
     }
 
 
 
     stages {
+
+        stage('Initialize Gates') {
+            steps {
+                script {
+                    // Mutable gate state must not be declared in environment.
+                    ['BUILD_OK', 'TESTS_OK', 'SONAR_OK', 'SNYK_OK',
+                     'STAGING_OK', 'RELEASE_OK', 'MONITORING_OK'].each {
+                        env[it] = 'false'
+                    }
+                }
+            }
+        }
 
         stage('Docker Diagnostics') {
 
@@ -103,6 +101,8 @@ pipeline {
 
 
                         echo BUILD RESULT: PASSED - image exists.
+
+                        exit /b 0
 
                     ''')
 
@@ -225,6 +225,10 @@ pipeline {
             steps {
 
                 script {
+
+                    if (env.TESTS_OK != 'true' || !fileExists('coverage/lcov.info')) {
+                        error('SonarCloud requires passing tests and fresh LCOV coverage from this build.')
+                    }
 
                     try {
 

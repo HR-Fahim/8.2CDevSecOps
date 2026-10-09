@@ -27,6 +27,20 @@ The pipeline automates **build, testing, code quality analysis, security scannin
 
 Security findings are reported by Snyk and archived as `snyk-report.json` for review and remediation documentation.
 
+## Coverage Verification
+
+Run `npm run test:coverage` to test TODO operations, login validation and redirects,
+account details, text/ZIP imports, chat permissions, users, and utilities. The
+database boundary is mocked; these tests do not require a running MongoDB server.
+The command includes untested route files and enforces at least 80% line, branch,
+function, and statement coverage for routes and utilities. It generates
+`coverage/lcov.info` and a readable report at `coverage/lcov-report/index.html`.
+
+Jenkins initializes mutable gate flags in a script so successful stages can update
+them. SonarCloud runs only after passing tests and generation of the current
+build's LCOV report. Commit and push the changes, then rerun Jenkins to update
+SonarCloud; a local coverage result does not confirm the hosted quality gate.
+
 ## Resubmission Evidence Checklist
 
 Show these in the updated video/report:

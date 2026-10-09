@@ -144,3 +144,17 @@ test('users route accepts a valid user payload', async () => {
 
     assert.equal(response.statusCode, 201);
 });
+
+test('users route rejects missing, non-string and blank fields', async () => {
+    for (const body of [
+        {}, { name: 42, address: 'AU', role: 'user' },
+        { name: 'Asha', address: {}, role: 'user' },
+        { name: 'Asha', address: 'AU', role: [] },
+        { name: ' ', address: 'AU', role: 'user' },
+        { name: 'Asha', address: ' ', role: 'user' }
+    ]) {
+        const response = createResponse();
+        await routeHandler('post', '/')({ body }, response, assert.fail);
+        assert.equal(response.statusCode, 400);
+    }
+});

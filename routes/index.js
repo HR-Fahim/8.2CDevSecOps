@@ -36,17 +36,17 @@ function safeRedirectPath(value) {
   }
 }
 
-exports.index = function (req, res, next) {
-  Todo.find({})
-    .sort('-updated_at')
-    .exec((err, todos) => {
-      if (err) return next(err);
-      res.render('index', {
-        title: 'Patch TODO List',
-        subhead: 'Vulnerabilities at their best',
-        todos
-      });
+exports.index = async function (req, res, next) {
+  try {
+    const todos = await Todo.find({}).sort('-updated_at').exec();
+    return res.render('index', {
+      title: 'Patch TODO List',
+      subhead: 'Vulnerabilities at their best',
+      todos
     });
+  } catch (err) {
+    return next(err);
+  }
 };
 
 
@@ -177,7 +177,7 @@ function parse(todo) {
   return t;
 }
 
-exports.create = function (req, res, next) {
+exports.create = async function (req, res, next) {
   const submittedContent = req.body.content;
   if (typeof submittedContent !== 'string' || submittedContent.length > 10000) {
     return res.status(400).send('Invalid todo content');
@@ -186,49 +186,55 @@ exports.create = function (req, res, next) {
   // Store submitted markdown as text; never pass user-controlled URLs to a shell.
   const item = parse(submittedContent);
 
-  new Todo({
-    content: item,
-    updated_at: Date.now()
-  }).save((err, todo) => {
-    if (err) return next(err);
+  try {
+    const todo = await new Todo({
+      content: item,
+      updated_at: Date.now()
+    }).save();
     res.setHeader('Location', '/');
     res.status(302).send(todo.content.toString('base64'));
-  });
+  } catch (err) {
+    return next(err);
+  }
 };
 
-exports.destroy = function (req, res, next) {
-  Todo.findById(req.params.id, (err, todo) => {
-    try {
-      todo.remove((err) => {
-        if (err) return next(err);
-        res.redirect('/');
-      });
-    } catch (e) {}
-  });
+exports.destroy = async function (req, res, next) {
+  try {
+    const todo = await Todo.findByIdAndDelete(req.params.id).exec();
+    if (!todo) return res.status(404).send('Todo not found');
+    return res.redirect('/');
+  } catch (err) {
+    return next(err);
+  }
 };
 
-exports.edit = function (req, res, next) {
-  Todo.find({})
-    .sort('-updated_at')
-    .exec((err, todos) => {
-      if (err) return next(err);
-      res.render('edit', {
-        title: 'TODO',
-        todos,
-        current: req.params.id
-      });
+exports.edit = async function (req, res, next) {
+  try {
+    const todos = await Todo.find({}).sort('-updated_at').exec();
+    return res.render('edit', {
+      title: 'TODO',
+      todos,
+      current: req.params.id
     });
+  } catch (err) {
+    return next(err);
+  }
 };
 
-exports.update = function (req, res, next) {
-  Todo.findById(req.params.id, (err, todo) => {
+exports.update = async function (req, res, next) {
+  if (typeof req.body.content !== 'string' || req.body.content.length > 10000) {
+    return res.status(400).send('Invalid todo content');
+  }
+  try {
+    const todo = await Todo.findById(req.params.id).exec();
+    if (!todo) return res.status(404).send('Todo not found');
     todo.content = req.body.content;
     todo.updated_at = Date.now();
-    todo.save((err) => {
-      if (err) return next(err);
-      res.redirect('/');
-    });
-  });
+    await todo.save();
+    return res.redirect('/');
+  } catch (err) {
+    return next(err);
+  }
 };
 
 exports.current_user = function (req, res, next) {
@@ -239,7 +245,7 @@ function isBlank(str) {
   return !str || /^\s*$/.test(str);
 }
 
-exports.import = function (req, res, next) {
+exports.import = async function (req, res, next) {
   if (!req.files || !req.files.importFile || !req.files.importFile.data) {
     return res.status(400).send('No import file was uploaded.');
   }
@@ -275,45 +281,32 @@ exports.import = function (req, res, next) {
   }
 
   const lines = data.split(/\r?\n/).slice(0, 10000);
-  let pending = 0;
-  let finished = false;
-  let failed = false;
+  try {
+    for (const line of lines) {
+      if (isBlank(line)) continue;
+      const parts = line.split(',');
+      const what = parts[0];
+      const when = parts[1];
+      const locale = parts[2];
+      const format = parts[3];
+      if (isBlank(what) || what.length > 10000) continue;
 
-  function finishIfReady() {
-    if (finished || pending > 0) return;
-    finished = true;
-    if (failed) return next(new Error('One or more imported TODOs could not be saved.'));
-    return res.redirect('/');
-  }
-
-  lines.forEach((line) => {
-    if (isBlank(line)) return;
-    const parts = line.split(',');
-    const what = parts[0];
-    const when = parts[1];
-    const locale = parts[2];
-    const format = parts[3];
-    if (isBlank(what) || what.length > 10000) return;
-
-    let item = what;
-    if (!isBlank(when) && !isBlank(locale) && !isBlank(format)) {
-      // Accept only known locale/format strings; never use input as a filesystem path.
-      if (/^[a-zA-Z_-]{2,10}$/.test(locale) && /^[A-Za-z0-9 ,:./_-]{1,80}$/.test(format)) {
-        moment.locale(locale);
-        const date = moment(when);
-        if (date.isValid()) item += ` [${date.format(format)}]`;
+      let item = what;
+      if (!isBlank(when) && !isBlank(locale) && !isBlank(format)) {
+        // Accept only known locale/format strings; never use input as a filesystem path.
+        if (/^[a-zA-Z_-]{2,10}$/.test(locale) && /^[A-Za-z0-9 ,:./_-]{1,80}$/.test(format)) {
+          moment.locale(locale);
+          const date = moment(when);
+          if (date.isValid()) item += ` [${date.format(format)}]`;
+        }
       }
+
+      await new Todo({ content: item, updated_at: Date.now() }).save();
     }
-
-    pending += 1;
-    new Todo({ content: item, updated_at: Date.now() }).save((err) => {
-      if (err) failed = true;
-      pending -= 1;
-      finishIfReady();
-    });
-  });
-
-  finishIfReady();
+    return res.redirect('/');
+  } catch (err) {
+    return next(err);
+  }
 };
 
 exports.about_new = function (req, res, next) {
