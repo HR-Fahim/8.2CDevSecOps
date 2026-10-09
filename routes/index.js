@@ -64,12 +64,15 @@ exports.loginHandler = async function (req, res, next) {
   }
 
   try {
-    const user = await User.findOne({
-      username: { $eq: username },
-      password: { $eq: password }
-    });
+    // Use a validated scalar email as the only database query value.
+    // Check the password as a string after lookup instead of placing request
+    // data into the MongoDB filter.
+    const user = await User.findOne()
+      .where('username')
+      .equals(username)
+      .exec();
 
-    if (user) {
+    if (user && typeof user.password === 'string' && user.password === password) {
       return adminLoginSuccess(
         req.body.redirectPage,
         req.session,

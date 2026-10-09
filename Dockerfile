@@ -2,12 +2,21 @@ FROM node:20
 
 WORKDIR /usr/src/goof
 
-# Copy dependency manifests first so Docker can cache npm ci.
-COPY package*.json ./
-RUN npm ci
+# Copy dependency manifests explicitly so Docker can cache npm ci.
+COPY --chown=node:node package.json package-lock.json ./
+# Prevent dependency lifecycle scripts from running during installation.
+RUN npm ci --ignore-scripts
 
-# .dockerignore keeps local dependencies, Git history and reports out of the image.
-COPY --chown=node:node . .
+# Copy application files explicitly instead of copying the entire build context.
+# This keeps repository metadata, local reports and unrelated files out of the image.
+COPY --chown=node:node app.js app.json example111.json mongoose-db.js typeorm-db.js utils.js ./
+COPY --chown=node:node entity/ ./entity/
+COPY --chown=node:node exploits/ ./exploits/
+COPY --chown=node:node public/ ./public/
+COPY --chown=node:node routes/ ./routes/
+COPY --chown=node:node service/ ./service/
+COPY --chown=node:node tests/ ./tests/
+COPY --chown=node:node views/ ./views/
 
 # Create the temporary workspace without recursively changing ownership.
 RUN mkdir -p /tmp/extracted_files && \
