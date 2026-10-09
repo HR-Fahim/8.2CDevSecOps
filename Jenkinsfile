@@ -30,10 +30,13 @@ pipeline {
             steps {
                 script {
                     // Mutable gate state must not be declared in environment.
-                    ['BUILD_OK', 'TESTS_OK', 'SONAR_OK', 'SNYK_OK',
-                     'STAGING_OK', 'RELEASE_OK', 'MONITORING_OK'].each {
-                        env[it] = 'false'
-                    }
+                    env.BUILD_OK = 'false'
+                    env.TESTS_OK = 'false'
+                    env.SONAR_OK = 'false'
+                    env.SNYK_OK = 'false'
+                    env.STAGING_OK = 'false'
+                    env.RELEASE_OK = 'false'
+                    env.MONITORING_OK = 'false'
                 }
             }
         }
