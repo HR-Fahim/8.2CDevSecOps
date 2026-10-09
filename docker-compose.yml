@@ -6,7 +6,6 @@ services:
       SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in Jenkins credentials}
     ports:
       - "${APP_PORT:-3001}:3001"
-      - "${DEBUG_PORT:-9229}:9229"
     depends_on:
       - goof-mongo
       - good-mysql
