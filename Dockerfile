@@ -14,7 +14,7 @@ COPY --chown=node:node . .
 
 # Keeping the temporary directory used by the application
 RUN mkdir -p /tmp/extracted_files && \
-    chown -R node:node /tmp/extracted_files /usr/src/goof
+    chown node:node /tmp/extracted_files /usr/src/goof
 
 # IMPORTANT: must not run the application as root
 USER node
