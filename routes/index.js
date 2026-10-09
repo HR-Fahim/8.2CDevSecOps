@@ -314,11 +314,21 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  return res.render('about_new.dust', {
-    title: 'Patch TODO List',
-    subhead: 'Vulnerabilities at their best',
-    device: req.query.device
-  });
+  const device = typeof req.query.device === 'string'
+    ? validator.escape(req.query.device.slice(0, 80))
+    : 'browser';
+
+  return res
+    .type('html')
+    .send(`<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Patch TODO List</title></head>
+<body>
+  <h1>Patch TODO List</h1>
+  <p>Vulnerabilities at their best</p>
+  <p>Device: ${device}</p>
+</body>
+</html>`);
 };
 
 const users = [];

@@ -1,4 +1,3 @@
-<% layout( 'layout' ) -%>
 <style>
 strong {font-weight: bold}
 </style>
@@ -17,7 +16,7 @@ strong {font-weight: bold}
 
 <% todos.forEach( function ( todo ){ %>
   <div class="item">
-    <a class="update-link" href="/edit/<%= todo._id %>" title="Update this todo item"><%- marked(new String(todo.content)) %></a>
+    <a class="update-link" href="/edit/<%= todo._id %>" title="Update this todo item"><%= new String(todo.content) %></a>
     <a class="del-btn" href="/destroy/<%= todo._id %>" title="Delete this todo item">Delete</a>
   </div>
 <% }); %>

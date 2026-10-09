@@ -1,45 +1,43 @@
 
 var express = require('express')
-var typeorm = require("typeorm");
 
 var router = express.Router()
 module.exports = router
 
+const users = [
+  {
+    id: 1,
+    name: 'Liran',
+    address: 'IL',
+    role: 'user'
+  },
+  {
+    id: 2,
+    name: 'Simon',
+    address: 'UK',
+    role: 'admin'
+  }
+]
+
 router.get('/', async (req, res, next) => {
-
-  const mongoConnection = typeorm.getConnection('mysql')
-  const repo = mongoConnection.getRepository("Users")
-
-  // hard-coded getting account id of 1
-  // as a rpelacement to getting this from the session and such
-  // (just imagine that we implemented auth, etc)
-  const results = await repo.find({ id: 1 })
-
-  // Log Object's where property for debug reasons:
-  console.log('The Object.where property is set to: ', {}.where)
-  console.log(results)
-
-  return res.json(results)
-
+  return res.json(users)
 })
 
 router.post('/', async (req, res, next) => {
-  try {
-    const mongoConnection = typeorm.getConnection('mysql')
-    const repo = mongoConnection.getRepository("Users")
+  const name = typeof req.body.name === 'string' ? req.body.name.trim() : ''
+  const address = typeof req.body.address === 'string' ? req.body.address.trim() : ''
+  const role = typeof req.body.role === 'string' ? req.body.role.trim() : ''
 
-    const user = {}
-    user.name = req.body.name
-    user.address = req.body.address
-    user.role = req.body.role
-
-    const savedRecord = await repo.save(user)
-    console.log("Post has been saved: ", savedRecord)
-    return res.sendStatus(200)
-
-  } catch (err) {
-    console.error(err)
-    console.log({}.where)
-    next();
+  if (!name || !address || !['user', 'admin'].includes(role)) {
+    return res.status(400).send({ ok: false, error: 'Invalid user payload' })
   }
+
+  users.push({
+    id: users.length + 1,
+    name: name.slice(0, 80),
+    address: address.slice(0, 80),
+    role
+  })
+
+  return res.sendStatus(201)
 })

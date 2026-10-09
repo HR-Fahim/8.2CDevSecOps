@@ -26,7 +26,7 @@ pipeline {
                     bat(returnStatus: true, script: 'whoami')
                     bat(returnStatus: true, script: 'docker version')
                     bat(returnStatus: true, script: 'docker info')
-                    bat(returnStatus: true, script: 'docker image inspect node:18.13.0')
+                    bat(returnStatus: true, script: 'docker image inspect node:20')
                 }
             }
         }
@@ -37,27 +37,21 @@ pipeline {
                 script {
                     echo "Building ${env.IMAGE_NAME}:${env.BUILD_NUMBER}..."
 
-                    int buildResult = powershell(
-                        returnStatus: true,
-                        script: '''
-                            $image = "$env:IMAGE_NAME`:$env:BUILD_NUMBER"
+                    int buildResult = bat(returnStatus: true, script: '''
+                        docker build -t %IMAGE_NAME%:%BUILD_NUMBER% .
+                        if errorlevel 1 (
+                            echo BUILD RESULT: FAILED.
+                            exit /b 1
+                        )
 
-                            docker build -t $image .
-                            if ($LASTEXITCODE -ne 0) {
-                                Write-Host "BUILD RESULT: FAILED."
-                                exit 1
-                            }
+                        docker image inspect %IMAGE_NAME%:%BUILD_NUMBER% >nul 2>nul
+                        if errorlevel 1 (
+                            echo BUILD RESULT: FAILED - image inspection failed.
+                            exit /b 1
+                        )
 
-                            docker image inspect $image *> $null
-                            if ($LASTEXITCODE -ne 0) {
-                                Write-Host "BUILD RESULT: FAILED - image inspection failed."
-                                exit 1
-                            }
-
-                            Write-Host "BUILD RESULT: PASSED - image exists."
-                            exit 0
-                        '''
-                    )
+                        echo BUILD RESULT: PASSED - image exists.
+                    ''')
 
                     env.BUILD_OK = (buildResult == 0) ? 'true' : 'false'
                     echo "BUILD_OK=${env.BUILD_OK}"
@@ -128,7 +122,7 @@ pipeline {
                         env.SONAR_OK = 'false'
                         echo "SonarCloud could not complete: ${err.getMessage()}"
                     }
-                    echo "SONAR_OK=${env.SONAR_OK}. A failed quality gate is recorded; later stages will still run."
+                    echo "SONAR_OK=${env.SONAR_OK}. Production release is blocked unless the quality gate passes."
                 }
             }
         }
@@ -139,7 +133,7 @@ pipeline {
                     try {
                         withCredentials([string(credentialsId: 'SNYK_TOKEN', variable: 'SNYK_TOKEN')]) {
                             echo 'Running Snyk. High/critical findings, authentication errors, and scan errors all fail this gate.'
-                            int snykResult = bat(returnStatus: true, script: 'npx --yes snyk test --severity-threshold=high --json-file-output=snyk-report.json')
+                            int snykResult = bat(returnStatus: true, script: 'npx --yes snyk test --all-projects --severity-threshold=high --json-file-output=snyk-report.json')
                             env.SNYK_OK = snykResult == 0 ? 'true' : 'false'
                         }
                     } catch (err) {

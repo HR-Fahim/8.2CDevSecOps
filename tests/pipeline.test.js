@@ -2,6 +2,46 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const utils = require('../utils');
+const usersRouter = require('../routes/users');
+
+function routeHandler(method, path) {
+    const layer = usersRouter.stack.find((item) => {
+        return item.route &&
+            item.route.path === path &&
+            item.route.methods[method];
+    });
+
+    assert.ok(layer, `Expected ${method.toUpperCase()} ${path} route`);
+    return layer.route.stack[0].handle;
+}
+
+function createResponse() {
+    return {
+        statusCode: 200,
+        body: undefined,
+
+        json(value) {
+            this.body = value;
+            return this;
+        },
+
+        send(value) {
+            this.body = value;
+            return this;
+        },
+
+        sendStatus(statusCode) {
+            this.statusCode = statusCode;
+            this.body = String(statusCode);
+            return this;
+        },
+
+        status(statusCode) {
+            this.statusCode = statusCode;
+            return this;
+        }
+    };
+}
 
 test('ran_no works with a different valid range', () => {
     for (let i = 0; i < 20; i++) {
@@ -72,4 +112,35 @@ test('forbidden returns status 403', () => {
 
     assert.equal(response.statusCode, 403);
     assert.equal(response.body, 'Forbidden');
+});
+
+test('users route lists seeded users without a database dependency', async () => {
+    const response = createResponse();
+
+    await routeHandler('get', '/')({}, response, assert.fail);
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(Array.isArray(response.body), true);
+    assert.equal(response.body[0].name, 'Liran');
+});
+
+test('users route rejects invalid role values', async () => {
+    const response = createResponse();
+
+    await routeHandler('post', '/')({
+        body: { name: 'Asha', address: 'AU', role: 'owner' }
+    }, response, assert.fail);
+
+    assert.equal(response.statusCode, 400);
+    assert.deepEqual(response.body, { ok: false, error: 'Invalid user payload' });
+});
+
+test('users route accepts a valid user payload', async () => {
+    const response = createResponse();
+
+    await routeHandler('post', '/')({
+        body: { name: 'Asha', address: 'AU', role: 'user' }
+    }, response, assert.fail);
+
+    assert.equal(response.statusCode, 201);
 });
